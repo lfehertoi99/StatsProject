@@ -74,4 +74,6 @@ def get_SB_expectation(xs, A, lamb, mu, sig, signal_amp):
         ys.append(A*np.exp(-x/lamb) + signal_gaus(x, mu, sig, signal_amp))
     return ys
 
+print('Iam dumb')
+
 

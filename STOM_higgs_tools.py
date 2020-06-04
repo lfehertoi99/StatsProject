@@ -73,7 +73,30 @@ def get_SB_expectation(xs, A, lamb, mu, sig, signal_amp):
     for x in xs:
         ys.append(A*np.exp(-x/lamb) + signal_gaus(x, mu, sig, signal_amp))
     return ys
+#%%
+Data=generate_data()#generating data
+bin_number=30 #choosing number of bins
+#%%
+#plotting histogram and finding out what the height and edges of each bin are
+Data_bin_heights,Data_bin_edges,Data_patches=plt.hist(Data,bins=bin_number,range=[104,155])
+#%%
+#finding the center of each bin
+Data_bin_value=[]
+for i in range(0,bin_number):
+    x=(Data_bin_edges[i]+Data_bin_edges[i+1])/2
+    Data_bin_value.append(x)
+#plotting the center of each bin with the height
+plt.scatter(Data_bin_value,Data_bin_heights,color='black')
+#error for x is just the width of each bin 
+#error for y not too sure, i chose it to be the standard deviation of an exponential*the value at that point (could be wrong but it looks good)
+plt.errorbar(Data_bin_value,Data_bin_heights,xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2,yerr=(1/b_tau)*Data_bin_heights,ls='',color='black',capsize=2)
+#setting limits
+plt.xlim(104,155)
+plt.ylim(0,2000)
+#labelling
+plt.xlabel('m (GeV)')
+plt.ylabel('Number of entries')
+plt.show()
 
-print('Iam dumb')
 
 

@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import scipy as sp
 import scipy.optimize as opt
 import scipy.integrate as sint
+import numpy as np
 #%%
 np.random.seed(1)
 
@@ -151,8 +152,8 @@ Area_test=sint.quad(expfunc,0,120,args=(A_val,B_val))
 A=Area_Data/Area_test[0]
 print(A)
 #%%
+    #c
 #defining an exponential function and plotting it using the parameters we have chosen along with the scatter points
-
 
 k=sp.linspace(104,155,1000)
 plt.plot(k,expfunc(k,A,param_lambda))
@@ -200,3 +201,44 @@ plt.show()
 
 #gives quite a good fit, but only uses the first 120 which makes it not as good
 #%%
+    #d
+#the idea here is to create a 2D array that has different test_step_number of different values for A and lambda at a certain radius away from what was calculated before.
+#each one of these will then be tested with the reduced chi squared test. The values of tested A and lambda that has the lowest chi squared value will then be used for the fit.
+
+test_step_number=10
+range_A=1000
+range_lamb=3
+A_lamb_test=np.zeros([test_step_number,test_step_number,2])
+for i in range(0,test_step_number):
+    for j in range (0,test_step_number):
+        A_lamb_test[i,j]=[A-(range_A/2)+(range_A/test_step_number)*i,param_lambda-(range_lamb/2)+(range_lamb/test_step_number)*j]
+
+red_chi2_test=np.zeros([test_step_number,test_step_number])
+for i in range(0,test_step_number):
+    for j in range (0,test_step_number):
+        red_chi2_test[i,j]=get_B_chi(Data,e_range,bin_number_e,A_lamb_test[i,j,0],A_lamb_test[i,j,1])
+
+pos_best_val=[]
+for i in range(0,test_step_number):
+    for j in range (0,test_step_number):
+        if red_chi2_test[i,j]==np.min(red_chi2_test):
+            pos_best_val=[i,j]
+        else:
+            continue
+
+A_new=A_lamb_test[pos_best_val[0],pos_best_val[1],0]
+lamb_new=A_lamb_test[pos_best_val[0],pos_best_val[1],1]
+
+plt.plot(k,expfunc(k,A_new,lamb_new))
+
+plt.scatter(Data_bin_value,Data_bin_heights,color='black')
+plt.errorbar(Data_bin_value,Data_bin_heights,xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2,yerr=(1/b_tau)*Data_bin_heights,ls='',color='black',capsize=2)
+plt.xlim(hist_range)
+plt.ylim(0,2000)
+plt.xlabel('m (GeV)')
+plt.ylabel('Number of entries')
+plt.show()
+#%%
+#Part 3
+red_chi2=get_B_chi(Data,e_range,bin_number_e,A_new,lamb_new)
+print(red_chi2)

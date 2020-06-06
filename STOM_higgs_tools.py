@@ -1,5 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy as sp
+import scipy.optimize as opt
+import scipy.integrate as sint
+#%%
 np.random.seed(1)
 
 N_b = 10e5 # Number of background events, used in generation and in fit.
@@ -74,12 +78,14 @@ def get_SB_expectation(xs, A, lamb, mu, sig, signal_amp):
         ys.append(A*np.exp(-x/lamb) + signal_gaus(x, mu, sig, signal_amp))
     return ys
 #%%
+#Part 1
 Data=generate_data()#generating data
 bin_number=30 #choosing number of bins
-#%%
+hist_range=[104,155]
 #plotting histogram and finding out what the height and edges of each bin are
-Data_bin_heights,Data_bin_edges,Data_patches=plt.hist(Data,bins=bin_number,range=[104,155])
+Data_bin_heights,Data_bin_edges,Data_patches=plt.hist(Data,bins=bin_number,range=hist_range)
 #%%
+bin_width=sp.diff(hist_range)/bin_number
 #finding the center of each bin
 Data_bin_value=[]
 for i in range(0,bin_number):
@@ -91,12 +97,106 @@ plt.scatter(Data_bin_value,Data_bin_heights,color='black')
 #error for y not too sure, i chose it to be the standard deviation of an exponential*the value at that point (could be wrong but it looks good)
 plt.errorbar(Data_bin_value,Data_bin_heights,xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2,yerr=(1/b_tau)*Data_bin_heights,ls='',color='black',capsize=2)
 #setting limits
-plt.xlim(104,155)
+plt.xlim(hist_range)
 plt.ylim(0,2000)
 #labelling
 plt.xlabel('m (GeV)')
 plt.ylabel('Number of entries')
 plt.show()
+#%%
+#Part 2
+    #a
+#Deleting data that is larger than 120
+newData1=[]
+for i in range(len(Data)):
+    if Data[i]<=120:
+        newData1.append(Data[i])
+    else:
+        continue
+#Calculating lambda for the new set. This is done by using maximum likelihood method.
+param_lambda1=sum(newData1)/len(newData1)
+print(param_lambda1)
+#this is obviously lower than what we'd expect, because essentially we are saying that there is no chance of any data appearing after 120, and so the graph will be "steeper"
+#%%
+#in order to avoid this, start taking values after 130
+newData=[]
+for i in range(len(Data)):
+    if Data[i]<=120 or Data[i]>=130:
+        newData.append(Data[i])
+    else:
+        continue
+param_lambda=sum(newData)/len(newData)
+print(param_lambda)
+#note that although this is much better than before, it is still not perfect since a chunk of data from 120-130 is missing. A better method might be to estimate this using the chi-squared method, although the coding will be much harder.
+#%%
+    #b
+#finding the area beneath our graph
+#the method I'm using is simply estimating the area under the graph by looking at the area of the rectangles of the histogram and summing each. 
+#Since we only want to look at the lower mass region, we have to create another histogram from 0-120GeV and find the mid points and bin width
+#The number of bins should be relatively high (basically the rough estimate of an integration)
+e_range=[0,120]
+bin_number_e=int(sp.diff(e_range)/bin_width)
+bin_width_e=sp.diff(e_range)/bin_number_e
+Data_bin_heights_e,Data_bin_edges_e,Data_patches=plt.hist(Data,bins=bin_number_e,range=e_range)
+#Area_Data=sum(Data_bin_heights_e*sp.absolute(Data_bin_edges_e[0]-Data_bin_edges_e[1]))
+Area_Data=sum(Data_bin_heights_e*bin_width_e)
+
+#finding area beneath an e^(-t/lambda) graph
+def expfunc(x,A_val,B_val):
+    return A_val*sp.e**(-x/B_val)
+A_val=1
+B_val=param_lambda
+Area_test=sint.quad(expfunc,0,120,args=(A_val,B_val))
+
+A=Area_Data/Area_test[0]
+print(A)
+#%%
+#defining an exponential function and plotting it using the parameters we have chosen along with the scatter points
 
 
+k=sp.linspace(104,155,1000)
+plt.plot(k,expfunc(k,A,param_lambda))
 
+plt.scatter(Data_bin_value,Data_bin_heights,color='black')
+plt.errorbar(Data_bin_value,Data_bin_heights,xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2,yerr=(1/b_tau)*Data_bin_heights,ls='',color='black',capsize=2)
+plt.xlim(hist_range)
+plt.ylim(0,2000)
+plt.xlabel('m (GeV)')
+plt.ylabel('Number of entries')
+plt.show()
+#what we see here is an underestimation of the actual curve, and this is caused by the underestimation in the value for lambda
+#%%
+#this can be seen from the test code underneath, using lambda=30 instead (since we know the distribution we started with had that)
+#to uncomment do Ctrl+1
+
+#plt.plot(k,expfunc(k,Area_Data/30,30))
+#
+#plt.scatter(Data_bin_value,Data_bin_heights,color='black')
+#plt.errorbar(Data_bin_value,Data_bin_heights,xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2,yerr=(1/b_tau)*Data_bin_heights,ls='',color='black',capsize=2)
+#plt.xlim(hist_range)
+#plt.ylim(0,2000)
+#plt.xlabel('m (GeV)')
+#plt.ylabel('Number of entries')
+#plt.show()
+
+#we can see by eye that it fits much better. This means that we need to have a better way of estimating lambda
+#%%
+#a fit of the function using python's in built curve_fit function
+
+#def expfunc(x,a,b):
+#    return a*sp.e**(-x/b)
+#
+#Data_bin_value_e=[]
+#for i in range(0,bin_number_e):
+#    x=(Data_bin_edges_e[i]+Data_bin_edges_e[i+1])/2
+#    Data_bin_value_e.append(x)
+#
+#x0=[50000,30]
+#k=sp.linspace(100,160,1000)
+#curvefit=opt.curve_fit(expfunc,Data_bin_value_e,Data_bin_heights_e,p0=x0)
+#realcurvefit=expfunc(k,*curvefit[0])
+#print(*curvefit[0])
+#plt.plot(k,realcurvefit)
+
+#gives quite a good fit, but only uses the first 120 which makes it not as good
+#%%

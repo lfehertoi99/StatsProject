@@ -206,8 +206,8 @@ plt.show()
 #each one of these will then be tested with the reduced chi squared test. The values of tested A and lambda that has the lowest chi squared value will then be used for the fit.
 
 test_step_number=10 #dont use too large of a number it will take a long time
-range_A=1000
-range_lamb=3
+range_A=2500
+range_lamb=0.75
 
 #this is creating a 2D array of different combinations of A and lambda within the range specified above
 A_lamb_test=np.zeros([test_step_number,test_step_number,2])
@@ -227,6 +227,7 @@ for i in range(0,test_step_number):
     for j in range (0,test_step_number):
         if red_chi2_test[i,j]==np.min(red_chi2_test):
             pos_best_val=[i,j]
+            print(red_chi2_test[i,j])
         else:
             continue
 
@@ -234,6 +235,7 @@ A_new=A_lamb_test[pos_best_val[0],pos_best_val[1],0]
 lamb_new=A_lamb_test[pos_best_val[0],pos_best_val[1],1]
 
 #plotting the graph with new values of A and lambda
+k=sp.linspace(100,160,1000)
 plt.plot(k,expfunc(k,A_new,lamb_new))
 
 plt.scatter(Data_bin_value,Data_bin_heights,color='black')
@@ -243,8 +245,41 @@ plt.ylim(0,2000)
 plt.xlabel('m (GeV)')
 plt.ylabel('Number of entries')
 plt.show()
-plt.savefig('fitted curve.png',dpi=1000)
+#plt.savefig('fitted curve.png',dpi=1000)
 #%%
 #Part 3
 red_chi2=get_B_chi(Data,e_range,bin_number_e,A_new,lamb_new)
+print(red_chi2)
+#%%
+#Part 4
+    #a
+red_chi2_signal=get_B_chi(Data,hist_range,bin_number,A_new,lamb_new)
+print(red_chi2_signal)
+#%%
+    #b
+BG_Data=generate_background(N_b, b_tau)
+BG_bins=int((max(BG_Data)-min(BG_Data))//bin_width)
+BG_Data_bin_heights,BG_Data_bin_edges,BG_Data_patches=plt.hist(BG_Data,bins=BG_bins)
+
+BG_range=[0,max(BG_Data_bin_edges)]
+
+BG_Data_bin_value=[]
+for i in range (0,BG_bins):
+    x=(BG_Data_bin_edges[i]+BG_Data_bin_edges[i+1])/2
+    BG_Data_bin_value.append(x)
+   
+BG_param_lambda=sum(BG_Data)/len(BG_Data)
+print(BG_param_lambda)
+
+BG_bin_width=sp.absolute(BG_Data_bin_edges[0]-BG_Data_bin_edges[1])
+BG_Area_Data=sum(BG_Data_bin_heights*BG_bin_width)
+
+BG_A=BG_Area_Data/BG_param_lambda
+
+BG_k=sp.linspace(0,max(BG_Data_bin_value),1000)
+plt.plot(BG_k,expfunc(BG_k,BG_A,BG_param_lambda))
+
+plt.scatter(BG_Data_bin_value,BG_Data_bin_heights,color='black')
+
+BG_red_chi2=get_B_chi(BG_Data,BG_range,BG_bins,BG_A,BG_param_lambda)
 print(red_chi2)

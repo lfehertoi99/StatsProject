@@ -305,4 +305,10 @@ plt.hist(red_chi2_value_list,bins=15)
 plt.xlabel('Chi squared values')
 plt.ylabel('index')
 #plt.savefig('4b chi squared distribution graph.png')
+
+#the distribution is as we expected. Since we expected the minimum chi squared value to be around the same as the number of degrees of freedom
+#we get a distribution with the reduced chi squared value's mean around 1, which means that this agrees with the "goodness of the fit"
+#most of the values were not found near to the one found for the signal. the closest ones to it were around 2.25, however that is still quite not that close to 3.7, and we can say with a high confidence that this was likely just due to chance
+#if a lot of the values were found near the one found for the signal, then we can say that since this was a background only trial, that the "signal" was likely due to just the shape of the background distribution.
+
 #%%

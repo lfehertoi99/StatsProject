@@ -255,31 +255,54 @@ print(red_chi2)
     #a
 red_chi2_signal=get_B_chi(Data,hist_range,bin_number,A_new,lamb_new)
 print(red_chi2_signal)
+
+n_sd_away=red_chi2_signal/red_chi2
+print(n_sd_away)
+#we can see that in the region specified (104-155) the chi squared value is around 2.5 sigma away from the expected distribution
+#if we assume that the spread of chi squared values follow gaussian distribution, which corresponds to a rejection region of around 0.62%
 #%%
     #b
-BG_Data=generate_background(N_b, b_tau)
-BG_bins=int((max(BG_Data)-min(BG_Data))//bin_width)
-BG_Data_bin_heights,BG_Data_bin_edges,BG_Data_patches=plt.hist(BG_Data,bins=BG_bins)
+red_chi2_value_list=[]
+trial_no=1000 #might take around 15-20 mins if we're running for 10k results
 
-BG_range=[0,max(BG_Data_bin_edges)]
+#the idea of this bit is similar to what we've done from part 1-3, but instead this modelling the graph in the absence of the signal
+#i tried to make the code as 'runnable' as possible taking away unnecessary loops but it still takes a long time
 
-BG_Data_bin_value=[]
-for i in range (0,BG_bins):
-    x=(BG_Data_bin_edges[i]+BG_Data_bin_edges[i+1])/2
-    BG_Data_bin_value.append(x)
-   
-BG_param_lambda=sum(BG_Data)/len(BG_Data)
-print(BG_param_lambda)
+for j in range (0,int(trial_no)):
+    BG_Data=generate_background(N_b, b_tau)
+    BG_bins=int((max(BG_Data)-min(BG_Data))//bin_width)
+    BG_Data_bin_heights,BG_Data_bin_edges=np.histogram(BG_Data,bins=BG_bins)
+    
+    BG_bin_width=sp.absolute(BG_Data_bin_edges[0]-BG_Data_bin_edges[1])
+    
+    BG_range=[0,max(BG_Data_bin_edges)]
+    
+    BG_Data_bin_value=BG_Data_bin_edges-(1/2)*BG_bin_width
+    BG_Data_bin_value=sp.delete(BG_Data_bin_value,BG_Data_bin_value[0])
+    #    for i in range (0,BG_bins):
+    #        x=(BG_Data_bin_edges[i]+BG_Data_bin_edges[i+1])/2
+    #        BG_Data_bin_value.append(x)
+       
+    BG_param_lambda=sum(BG_Data)/len(BG_Data)
+    
+    
+    BG_Area_Data=sum(BG_Data_bin_heights*BG_bin_width)
+    
+    BG_A=BG_Area_Data/BG_param_lambda
+    
+    BG_k=sp.linspace(0,max(BG_Data_bin_value),1000)
+    #plt.plot(BG_k,expfunc(BG_k,BG_A,BG_param_lambda))
+    #
+    #plt.scatter(BG_Data_bin_value,BG_Data_bin_heights,color='black')
+    BG_chi_range=[104,155]
+    BG_chi_bin_no=30
+    BG_red_chi2=get_B_chi(BG_Data,BG_chi_range,BG_chi_bin_no,BG_A,BG_param_lambda)
+    #print(BG_red_chi2)
+    
+    red_chi2_value_list.append(BG_red_chi2)
 
-BG_bin_width=sp.absolute(BG_Data_bin_edges[0]-BG_Data_bin_edges[1])
-BG_Area_Data=sum(BG_Data_bin_heights*BG_bin_width)
-
-BG_A=BG_Area_Data/BG_param_lambda
-
-BG_k=sp.linspace(0,max(BG_Data_bin_value),1000)
-plt.plot(BG_k,expfunc(BG_k,BG_A,BG_param_lambda))
-
-plt.scatter(BG_Data_bin_value,BG_Data_bin_heights,color='black')
-
-BG_red_chi2=get_B_chi(BG_Data,BG_range,BG_bins,BG_A,BG_param_lambda)
-print(red_chi2)
+plt.hist(red_chi2_value_list,bins=15)
+plt.xlabel('Chi squared values')
+plt.ylabel('index')
+#plt.savefig('4b chi squared distribution graph.png')
+#%%

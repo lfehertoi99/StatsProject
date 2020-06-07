@@ -134,7 +134,7 @@ print(param_lambda)
 #finding the area beneath our graph
 #the method I'm using is simply estimating the area under the graph by looking at the area of the rectangles of the histogram and summing each. 
 #Since we only want to look at the lower mass region, we have to create another histogram from 0-120GeV and find the mid points and bin width
-#The number of bins should be relatively high (basically the rough estimate of an integration)
+#The bin width/rectangle width should be the same as the one we are trying to model for.
 e_range=[0,120]
 bin_number_e=int(sp.diff(e_range)/bin_width)
 bin_width_e=sp.diff(e_range)/bin_number_e
@@ -142,7 +142,8 @@ Data_bin_heights_e,Data_bin_edges_e,Data_patches=plt.hist(Data,bins=bin_number_e
 #Area_Data=sum(Data_bin_heights_e*sp.absolute(Data_bin_edges_e[0]-Data_bin_edges_e[1]))
 Area_Data=sum(Data_bin_heights_e*bin_width_e)
 
-#finding area beneath an e^(-t/lambda) graph
+#finding area beneath an e^(-t/lambda) graph by integration
+#defining an exponential function
 def expfunc(x,A_val,B_val):
     return A_val*sp.e**(-x/B_val)
 A_val=1
@@ -153,7 +154,7 @@ A=Area_Data/Area_test[0]
 print(A)
 #%%
     #c
-#defining an exponential function and plotting it using the parameters we have chosen along with the scatter points
+#plotting the exponential function using the parameters we have chosen along with the scatter points
 
 k=sp.linspace(104,155,1000)
 plt.plot(k,expfunc(k,A,param_lambda))
@@ -231,6 +232,7 @@ for i in range(0,test_step_number):
         else:
             continue
 
+#assigning the new values of A and lambda
 A_new=A_lamb_test[pos_best_val[0],pos_best_val[1],0]
 lamb_new=A_lamb_test[pos_best_val[0],pos_best_val[1],1]
 

@@ -78,6 +78,56 @@ def get_SB_expectation(xs, A, lamb, mu, sig, signal_amp):
     for x in xs:
         ys.append(A*np.exp(-x/lamb) + signal_gaus(x, mu, sig, signal_amp))
     return ys
+
+
+def get_B_chi_signal(vals, mass_range, nbins, A, lamb, mu, sig, signal_amp):
+    ''' 
+    Calculates the chi-square value of the no-signal hypothesis (i.e background
+    only) for the passed values. Need an expectation - use the analyic form, 
+    using the hard coded scale of the exp. That depends on the binning, so pass 
+    in as argument. The mass range must also be set - otherwise, its ignored.
+    '''
+    bin_heights, bin_edges = np.histogram(vals, range = mass_range, bins = nbins)
+    half_bin_width = 0.5*(bin_edges[1] - bin_edges[0])
+    ys_expected = get_SB_expectation(bin_edges + half_bin_width, A, lamb, mu, sig, signal_amp)
+    chi = 0
+
+    # Loop over bins - all of them for now. 
+    for i in range( len(bin_heights) ):
+        chi_nominator = (bin_heights[i] - ys_expected[i])**2
+        chi_denominator = ys_expected[i]
+        chi += chi_nominator / chi_denominator
+    
+    return chi/float(nbins-3) # B has 3 parameters.
+
+
+def get_B_chi_signal_1(vals, mass_range, nbins, A, lamb, mu, sig, signal_amp):
+    ''' 
+    Calculates the chi-square value of the no-signal hypothesis (i.e background
+    only) for the passed values. Need an expectation - use the analyic form, 
+    using the hard coded scale of the exp. That depends on the binning, so pass 
+    in as argument. The mass range must also be set - otherwise, its ignored.
+    '''
+    bin_heights, bin_edges = np.histogram(vals, range = mass_range, bins = nbins)
+    half_bin_width = 0.5*(bin_edges[1] - bin_edges[0])
+    ys_expected = get_SB_expectation(bin_edges + half_bin_width, A, lamb, mu, sig, signal_amp)
+    chi = 0
+
+    # Loop over bins - all of them for now. 
+    for i in range( len(bin_heights) ):
+        chi_nominator = (bin_heights[i] - ys_expected[i])**2
+        chi_denominator = ys_expected[i]
+        chi += chi_nominator / chi_denominator
+    
+    nzeros=0
+    for i in range(0,nbins):
+        if bin_heights[i]==0:
+            nzeros+=1
+        else:
+            continue
+    ndata=len(bin_heights)-nzeros
+    
+    return chi/float(ndata-1) # B has 1 parameters.
 #%%
 #Part 1
 Data=generate_data()#generating data
@@ -314,3 +364,88 @@ plt.ylabel('index')
 #if a lot of the values were found near the one found for the signal, then we can say that since this was a background only trial, that the "signal" was likely due to just the shape of the background distribution.
 
 #%%
+#Part 5
+    #a
+k_signal=sp.linspace(100,160,1000)
+mu_signal=125
+sig_signal=1.5
+signal_amp=700
+Curve_fit_signal=get_SB_expectation(k_signal, A_new, lamb_new, mu_signal, sig_signal, signal_amp)
+
+plt.plot(k_signal,Curve_fit_signal)
+
+plt.scatter(Data_bin_value,Data_bin_heights,color='black')
+plt.errorbar(Data_bin_value,Data_bin_heights,xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2,yerr=(1/b_tau)*Data_bin_heights,ls='',color='black',capsize=2)
+plt.xlim(hist_range)
+plt.ylim(0,2000)
+plt.xlabel('m (GeV)')
+plt.ylabel('Number of entries')
+plt.show()
+
+red_chi2_signal=get_B_chi_signal(Data,hist_range,bin_number,A_new,lamb_new,mu_signal,sig_signal,signal_amp)
+print(red_chi2_signal)  
+#%%
+    #b
+test_step_number2=10 #dont use too large of a number it will take a long time
+range_mu=5
+range_sig=1
+range_amp=50
+
+#this is creating a 2D array of different combinations of A and lambda within the range specified above
+m_s_a_test=np.zeros([test_step_number2,test_step_number2,test_step_number2,3])
+for i in range(0,test_step_number2):
+    for j in range (0,test_step_number2):
+        for k in range (0,test_step_number2):
+            m_s_a_test[i,j,k]=[mu_signal-(range_mu/2)+(range_mu/test_step_number2)*i,sig_signal-(range_sig/2)+(range_sig/test_step_number2)*j,signal_amp-(range_amp/2)+(range_amp/test_step_number2)*k]
+
+#this bit is calculating the chi squared value for each combination
+red_chi2_signal_test=np.zeros([test_step_number2,test_step_number2,test_step_number2])
+for i in range(0,test_step_number2):
+    for j in range (0,test_step_number2):
+        for k in range (0,test_step_number2):        
+            red_chi2_signal_test[i,j,k]=get_B_chi_signal(Data,hist_range,bin_number,A_new,lamb_new,m_s_a_test[i,j,k,0],m_s_a_test[i,j,k,1],m_s_a_test[i,j,k,2])
+
+#this bit picks out the position of the minimum value and uses them as the new values for A and lambda.
+pos_best_val2=[]
+for i in range(0,test_step_number2):
+    for j in range (0,test_step_number2):
+        for k in range (0,test_step_number2):
+            if red_chi2_signal_test[i,j,k]==np.min(red_chi2_signal_test):
+                pos_best_val2=[i,j,k]
+                print(red_chi2_signal_test[i,j,k])
+            else:
+                continue
+
+#assigning the new values of A and lambda
+mu_signal_new=m_s_a_test[pos_best_val2[0],pos_best_val2[1],pos_best_val2[2],0]
+sig_signal_new=m_s_a_test[pos_best_val2[0],pos_best_val2[1],pos_best_val2[2],1]
+signal_amp_new=m_s_a_test[pos_best_val2[0],pos_best_val2[1],pos_best_val2[2],2]
+
+print(mu_signal_new)
+print(sig_signal_new)
+print(signal_amp_new)
+
+Curve_fit_signal_new=get_SB_expectation(k_signal, A_new, lamb_new, mu_signal_new, sig_signal_new, signal_amp_new)
+
+plt.plot(k_signal,Curve_fit_signal_new)
+
+plt.scatter(Data_bin_value,Data_bin_heights,color='black')
+plt.errorbar(Data_bin_value,Data_bin_heights,xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2,yerr=(1/b_tau)*Data_bin_heights,ls='',color='black',capsize=2)
+plt.xlim(hist_range)
+plt.ylim(0,2000)
+plt.xlabel('m (GeV)')
+plt.ylabel('Number of entries')
+plt.show()
+#%%
+    #c
+chi2_test_range=10
+no_iterations=max(Data)//chi2_test_range
+mu_chi2_test=chi2_test_range/2
+
+chi2_loop_test=np.zeros([int(no_iterations),3])
+for i in range(0,int(no_iterations)):
+    chi2_loop_test[i]=[chi2_test_range*i,chi2_test_range*(i+1),get_B_chi_signal_1(Data,[chi2_test_range*i,chi2_test_range*(i+1)],5,A_new,lamb_new,mu_chi2_test*(i+1),sig_signal_new,signal_amp_new)]
+#    chi2_loop_test[i]=get_B_chi_signal(Data,[chi2_test_range*i,chi2_test_range*(i+1)],bin_number,A_new,lamb_new,mu_signal_new,sig_signal_new,signal_amp_new)
+
+print(chi2_loop_test)
+

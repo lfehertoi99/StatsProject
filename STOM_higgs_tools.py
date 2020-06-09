@@ -315,7 +315,7 @@ print(n_sd_away)
 #%%
     #b
 red_chi2_value_list=[]
-trial_no=1000 #might take around 15-20 mins if we're running for 10k results
+trial_no=10000 #might take around 15-20 mins if we're running for 10k results
 
 #the idea of this bit is similar to what we've done from part 1-3, but instead this modelling the graph in the absence of the signal
 #i tried to make the code as 'runnable' as possible taking away unnecessary loops but it still takes a long time
@@ -325,7 +325,7 @@ for j in range (0,int(trial_no)):
     BG_bins=int((max(BG_Data)-min(BG_Data))//bin_width)
     BG_Data_bin_heights,BG_Data_bin_edges=np.histogram(BG_Data,bins=BG_bins)
     
-    BG_bin_width=sp.absolute(BG_Data_bin_edges[0]-BG_Data_bin_edges[1])
+    BG_bin_width=sp.absolute((BG_Data_bin_edges[0]-BG_Data_bin_edges[1])/2)
     
     BG_range=[0,max(BG_Data_bin_edges)]
     
@@ -347,7 +347,7 @@ for j in range (0,int(trial_no)):
     #
     #plt.scatter(BG_Data_bin_value,BG_Data_bin_heights,color='black')
     BG_chi_range=[104,155]
-    BG_chi_bin_no=30
+    BG_chi_bin_no=60
     BG_red_chi2=get_B_chi(BG_Data,BG_chi_range,BG_chi_bin_no,BG_A,BG_param_lambda)
     #print(BG_red_chi2)
     
@@ -356,6 +356,7 @@ for j in range (0,int(trial_no)):
 plt.hist(red_chi2_value_list,bins=15)
 plt.xlabel('Chi squared values')
 plt.ylabel('index')
+plt.show()
 #plt.savefig('4b chi squared distribution graph.png')
 
 #the distribution is as we expected. Since we expected the minimum chi squared value to be around the same as the number of degrees of freedom

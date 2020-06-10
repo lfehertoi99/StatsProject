@@ -302,152 +302,158 @@ plt.show()
 #plt.savefig('fitted curve.png',dpi=1000)
 #%%
 #Part 3
-red_chi2 = get_B_chi(Data,e_range,bin_number_e,A_new,lamb_new)
+red_chi2 = get_B_chi(Data, e_range, bin_number_e, A_new, lamb_new)
 print(red_chi2)
 #%%
 #Part 4
     #a
-red_chi2_signal=get_B_chi(Data,hist_range,bin_number,A_new,lamb_new)
+red_chi2_signal = get_B_chi(Data, hist_range, bin_number, A_new, lamb_new)
 print(red_chi2_signal)
 
-n_sd_away=red_chi2_signal/red_chi2
+n_sd_away = red_chi2_signal/red_chi2
 print(n_sd_away)
-#we can see that in the region specified (104-155) the chi squared value is around 2.5 sigma away from the expected distribution
+#we can see that in the region specified (104-155) the chi squared value is around 2.5 sigma away from the background region-only value
 #if we assume that the spread of chi squared values follow gaussian distribution, which corresponds to a rejection region of around 0.62%
 #%%
     #b
-red_chi2_value_list=[]
-trial_no=10000 #might take around 15-20 mins if we're running for 10k results
+red_chi2_value_list = []
+trial_no = 10e4 #might take around 15-20 mins if we're running for 10k results
 
 #the idea of this bit is similar to what we've done from part 1-3, but instead this modelling the graph in the absence of the signal
 #i tried to make the code as 'runnable' as possible taking away unnecessary loops but it still takes a long time
 
-for j in range (0,int(trial_no)):
-    BG_Data=generate_background(N_b, b_tau)
-    BG_bins=int((max(BG_Data)-min(BG_Data))//bin_width)
-    BG_Data_bin_heights,BG_Data_bin_edges=np.histogram(BG_Data,bins=BG_bins)
+for j in range (int(trial_no)):
+    BG_Data = generate_background(N_b, b_tau)
+    BG_bins = int((max(BG_Data)-min(BG_Data))//bin_width)
+    BG_Data_bin_heights, BG_Data_bin_edges = sp.histogram(BG_Data,bins=BG_bins)
     
-    BG_bin_width=sp.absolute((BG_Data_bin_edges[0]-BG_Data_bin_edges[1])/2)
+    BG_bin_width = sp.absolute((BG_Data_bin_edges[0]-BG_Data_bin_edges[1])/2)
     
-    BG_range=[0,max(BG_Data_bin_edges)]
+    BG_range = [0,max(BG_Data_bin_edges)]
     
-    BG_Data_bin_value=BG_Data_bin_edges-(1/2)*BG_bin_width
-    BG_Data_bin_value=sp.delete(BG_Data_bin_value,BG_Data_bin_value[0])
+    BG_Data_bin_value = BG_Data_bin_edges-(1/2)*BG_bin_width
+    BG_Data_bin_value = sp.delete(BG_Data_bin_value,BG_Data_bin_value[0])
     #    for i in range (0,BG_bins):
     #        x=(BG_Data_bin_edges[i]+BG_Data_bin_edges[i+1])/2
     #        BG_Data_bin_value.append(x)
        
-    BG_param_lambda=sum(BG_Data)/len(BG_Data)
+    BG_param_lambda = sum(BG_Data)/len(BG_Data)
     
     
-    BG_Area_Data=sum(BG_Data_bin_heights*BG_bin_width)
+    BG_Area_Data = sum(BG_Data_bin_heights*BG_bin_width)
     
     BG_A=BG_Area_Data/BG_param_lambda
     
-    BG_k=sp.linspace(0,max(BG_Data_bin_value),1000)
+    BG_k = sp.linspace(0, max(BG_Data_bin_value), 1000)
     #plt.plot(BG_k,expfunc(BG_k,BG_A,BG_param_lambda))
     #
     #plt.scatter(BG_Data_bin_value,BG_Data_bin_heights,color='black')
-    BG_chi_range=[104,155]
-    BG_chi_bin_no=60
-    BG_red_chi2=get_B_chi(BG_Data,BG_chi_range,BG_chi_bin_no,BG_A,BG_param_lambda)
+    BG_chi_range = [104, 155]
+    BG_chi_bin_no = 60
+    BG_red_chi2 = get_B_chi(BG_Data, BG_chi_range, BG_chi_bin_no, BG_A, BG_param_lambda)
     #print(BG_red_chi2)
     
     red_chi2_value_list.append(BG_red_chi2)
-
-plt.hist(red_chi2_value_list,bins=15)
-plt.xlabel('Chi squared values')
-plt.ylabel('index')
+#%%
+plt.hist(red_chi2_value_list, bins = 15)
+plt.xlabel('Chi square / dof ')
+plt.ylabel('Number of entries')
 plt.show()
 #plt.savefig('4b chi squared distribution graph.png')
 
-#the distribution is as we expected. Since we expected the minimum chi squared value to be around the same as the number of degrees of freedom
-#we get a distribution with the reduced chi squared value's mean around 1, which means that this agrees with the "goodness of the fit"
+#the distribution is as we expected. Since we expected the minimum chi square/dof to be around 1
+#we get a distribution with the reduced chi squared value's mean around 1, which means that this is a good fit.
 #most of the values were not found near to the one found for the signal. the closest ones to it were around 2.25, however that is still quite not that close to 3.7, and we can say with a high confidence that this was likely just due to chance
 #if a lot of the values were found near the one found for the signal, then we can say that since this was a background only trial, that the "signal" was likely due to just the shape of the background distribution.
 
 #%%
 #Part 5
     #a
-k_signal=sp.linspace(100,160,1000)
-mu_signal=125
-sig_signal=1.5
-signal_amp=700
-Curve_fit_signal=get_SB_expectation(k_signal, A_new, lamb_new, mu_signal, sig_signal, signal_amp)
+k_signal = sp.linspace(100,160,1000)
+mu_signal = 125
+sig_signal = 1.5
+signal_amp = 700
+
+Curve_fit_signal = get_SB_expectation(k_signal, A_new, lamb_new, mu_signal, sig_signal, signal_amp)
 
 plt.plot(k_signal,Curve_fit_signal)
 
-plt.scatter(Data_bin_value,Data_bin_heights,color='black')
-plt.errorbar(Data_bin_value,Data_bin_heights,xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2,yerr=(1/b_tau)*Data_bin_heights,ls='',color='black',capsize=2)
+plt.scatter(Data_bin_value, Data_bin_heights, color='k')
+plt.errorbar(Data_bin_value, Data_bin_heights, xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2,yerr=(1/b_tau)*Data_bin_heights,ls='',color='black',capsize=2)
+
 plt.xlim(hist_range)
 plt.ylim(0,2000)
+
 plt.xlabel('m (GeV)')
 plt.ylabel('Number of entries')
+plt.savefig("bckgsignal")
 plt.show()
 
-red_chi2_signal=get_B_chi_signal(Data,hist_range,bin_number,A_new,lamb_new,mu_signal,sig_signal,signal_amp)
+red_chi2_signal = get_B_chi_signal(Data, hist_range, bin_number, A_new, lamb_new, mu_signal, sig_signal, signal_amp)
 print(red_chi2_signal)  
 #%%
     #b
-test_step_number2=10 #dont use too large of a number it will take a long time
-range_mu=5
-range_sig=1
-range_amp=50
+test_step_number2 = 10 #dont use too large of a number it will take a long time
+range_mu = 5
+range_sig = 1
+range_amp = 50
 
-#this is creating a 2D array of different combinations of A and lambda within the range specified above
-m_s_a_test=np.zeros([test_step_number2,test_step_number2,test_step_number2,3])
-for i in range(0,test_step_number2):
-    for j in range (0,test_step_number2):
-        for k in range (0,test_step_number2):
-            m_s_a_test[i,j,k]=[mu_signal-(range_mu/2)+(range_mu/test_step_number2)*i,sig_signal-(range_sig/2)+(range_sig/test_step_number2)*j,signal_amp-(range_amp/2)+(range_amp/test_step_number2)*k]
+#this is creating a 2D array of different combinations of mu, sigma and amplitude within the range specified above
+m_s_a_test = np.zeros([test_step_number2, test_step_number2, test_step_number2, 3])
+for i in range(test_step_number2):
+    for j in range(test_step_number2):
+        for k in range(test_step_number2):
+            m_s_a_test[i, j, k] = [mu_signal-(range_mu/2)+(range_mu/test_step_number2)*i,sig_signal-(range_sig/2)+(range_sig/test_step_number2)*j,signal_amp-(range_amp/2)+(range_amp/test_step_number2)*k]
 
 #this bit is calculating the chi squared value for each combination
-red_chi2_signal_test=np.zeros([test_step_number2,test_step_number2,test_step_number2])
-for i in range(0,test_step_number2):
-    for j in range (0,test_step_number2):
-        for k in range (0,test_step_number2):        
-            red_chi2_signal_test[i,j,k]=get_B_chi_signal(Data,hist_range,bin_number,A_new,lamb_new,m_s_a_test[i,j,k,0],m_s_a_test[i,j,k,1],m_s_a_test[i,j,k,2])
+red_chi2_signal_test = np.zeros([test_step_number2, test_step_number2, test_step_number2])
+for i in range(test_step_number2):
+    for j in range(test_step_number2):
+        for k in range(test_step_number2):        
+            red_chi2_signal_test[i, j, k] = get_B_chi_signal(Data, hist_range, bin_number, A_new, lamb_new, m_s_a_test[i, j, k, 0], m_s_a_test[i, j, k, 1], m_s_a_test[i, j, k, 2])
 
 #this bit picks out the position of the minimum value and uses them as the new values for A and lambda.
-pos_best_val2=[]
-for i in range(0,test_step_number2):
-    for j in range (0,test_step_number2):
-        for k in range (0,test_step_number2):
-            if red_chi2_signal_test[i,j,k]==np.min(red_chi2_signal_test):
-                pos_best_val2=[i,j,k]
-                print(red_chi2_signal_test[i,j,k])
+pos_best_val2 = []
+for i in range(test_step_number2):
+    for j in range(test_step_number2):
+        for k in range(test_step_number2):
+            if red_chi2_signal_test[i, j, k] == np.min(red_chi2_signal_test):
+                pos_best_val2 = [i, j, k]
+                print(red_chi2_signal_test[i, j, k])
             else:
                 continue
 
 #assigning the new values of A and lambda
-mu_signal_new=m_s_a_test[pos_best_val2[0],pos_best_val2[1],pos_best_val2[2],0]
-sig_signal_new=m_s_a_test[pos_best_val2[0],pos_best_val2[1],pos_best_val2[2],1]
-signal_amp_new=m_s_a_test[pos_best_val2[0],pos_best_val2[1],pos_best_val2[2],2]
+mu_signal_new = m_s_a_test[pos_best_val2[0], pos_best_val2[1], pos_best_val2[2], 0]
+sig_signal_new = m_s_a_test[pos_best_val2[0], pos_best_val2[1], pos_best_val2[2], 1]
+signal_amp_new = m_s_a_test[pos_best_val2[0], pos_best_val2[1], pos_best_val2[2], 2]
 
 print(mu_signal_new)
 print(sig_signal_new)
 print(signal_amp_new)
 
-Curve_fit_signal_new=get_SB_expectation(k_signal, A_new, lamb_new, mu_signal_new, sig_signal_new, signal_amp_new)
+Curve_fit_signal_new = get_SB_expectation(k_signal, A_new, lamb_new, mu_signal_new, sig_signal_new, signal_amp_new)
 
-plt.plot(k_signal,Curve_fit_signal_new)
+plt.plot(k_signal, Curve_fit_signal_new)
 
-plt.scatter(Data_bin_value,Data_bin_heights,color='black')
-plt.errorbar(Data_bin_value,Data_bin_heights,xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2,yerr=(1/b_tau)*Data_bin_heights,ls='',color='black',capsize=2)
+plt.scatter(Data_bin_value, Data_bin_heights,color='k')
+plt.errorbar(Data_bin_value, Data_bin_heights, xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2, yerr=(1/b_tau)*Data_bin_heights, ls='', color='k', capsize=2)
+
 plt.xlim(hist_range)
 plt.ylim(0,2000)
+
 plt.xlabel('m (GeV)')
 plt.ylabel('Number of entries')
 plt.show()
 #%%
     #c
-chi2_test_range=10
-no_iterations=max(Data)//chi2_test_range
-mu_chi2_test=chi2_test_range/2
+chi2_test_range = 10
+no_iterations = max(Data)//chi2_test_range
+mu_chi2_test = chi2_test_range/2
 
-chi2_loop_test=np.zeros([int(no_iterations),3])
-for i in range(0,int(no_iterations)):
-    chi2_loop_test[i]=[chi2_test_range*i,chi2_test_range*(i+1),get_B_chi_signal_1(Data,[chi2_test_range*i,chi2_test_range*(i+1)],5,A_new,lamb_new,mu_chi2_test*(i+1),sig_signal_new,signal_amp_new)]
+chi2_loop_test = np.zeros([int(no_iterations), 3])
+for i in range(int(no_iterations)):
+    chi2_loop_test[i] = [chi2_test_range*i,chi2_test_range*(i+1),get_B_chi_signal_1(Data, [chi2_test_range*i,chi2_test_range*(i+1)], 5, A_new, lamb_new, mu_chi2_test*(i+1), sig_signal_new, signal_amp_new)]
 #    chi2_loop_test[i]=get_B_chi_signal(Data,[chi2_test_range*i,chi2_test_range*(i+1)],bin_number,A_new,lamb_new,mu_signal_new,sig_signal_new,signal_amp_new)
 
 print(chi2_loop_test)

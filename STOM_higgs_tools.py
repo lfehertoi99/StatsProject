@@ -130,52 +130,44 @@ def get_B_chi_signal_1(vals, mass_range, nbins, A, lamb, mu, sig, signal_amp):
     return chi/float(ndata-1) # B has 1 parameters.
 #%%
 #Part 1
-Data=generate_data()#generating data
-bin_number=30 #choosing number of bins
-hist_range=[104,155]
+Data = generate_data()#generating data
+bin_number = 30 #choosing number of bins
+hist_range = [104,155]
 #plotting histogram and finding out what the height and edges of each bin are
-Data_bin_heights,Data_bin_edges,Data_patches=plt.hist(Data,bins=bin_number,range=hist_range)
+Data_bin_heights, Data_bin_edges, Data_patches = plt.hist(Data,bins = bin_number, range = hist_range)
+
+plt.xlabel("Mass range")
+plt.ylabel("Number of entries")
+plt.savefig("masshist")
 #%%
-bin_width=sp.diff(hist_range)/bin_number
+bin_width = sp.diff(hist_range)/bin_number #get width of bins
 #finding the center of each bin
-Data_bin_value=[]
-for i in range(0,bin_number):
-    x=(Data_bin_edges[i]+Data_bin_edges[i+1])/2
-    Data_bin_value.append(x)
+Data_bin_value = [(Data_bin_edges[i]+Data_bin_edges[i+1])/2 for i in range(bin_number)]
 #plotting the center of each bin with the height
-plt.scatter(Data_bin_value,Data_bin_heights,color='black')
+plt.scatter(Data_bin_value, Data_bin_heights, color='k')
 #error for x is just the width of each bin 
 #error for y not too sure, i chose it to be the standard deviation of an exponential*the value at that point (could be wrong but it looks good)
-plt.errorbar(Data_bin_value,Data_bin_heights,xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2,yerr=(1/b_tau)*Data_bin_heights,ls='',color='black',capsize=2)
+plt.errorbar(Data_bin_value, Data_bin_heights, xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2, ls='',color='k',capsize=2)
 #setting limits
 plt.xlim(hist_range)
 plt.ylim(0,2000)
 #labelling
 plt.xlabel('m (GeV)')
 plt.ylabel('Number of entries')
+plt.savefig("masshist.png")
 plt.show()
 #%%
 #Part 2
     #a
 #Deleting data that is larger than 120
-newData1=[]
-for i in range(len(Data)):
-    if Data[i]<=120:
-        newData1.append(Data[i])
-    else:
-        continue
+newData1 = [x for x in Data if x <= 120]
 #Calculating lambda for the new set. This is done by using maximum likelihood method.
-param_lambda1=sum(newData1)/len(newData1)
+param_lambda1 = sum(newData1)/len(newData1)
 print(param_lambda1)
 #this is obviously lower than what we'd expect, because essentially we are saying that there is no chance of any data appearing after 120, and so the graph will be "steeper"
 #%%
 #in order to avoid this, start taking values after 130
-newData=[]
-for i in range(len(Data)):
-    if Data[i]<=120 or Data[i]>=130:
-        newData.append(Data[i])
-    else:
-        continue
+newData = [x for x in Data if x <= 120 or x >= 130]
 param_lambda=sum(newData)/len(newData)
 print(param_lambda)
 #note that although this is much better than before, it is still not perfect since a chunk of data from 120-130 is missing. A better method might be to estimate this using the chi-squared method, although the coding will be much harder.
@@ -185,34 +177,42 @@ print(param_lambda)
 #the method I'm using is simply estimating the area under the graph by looking at the area of the rectangles of the histogram and summing each. 
 #Since we only want to look at the lower mass region, we have to create another histogram from 0-120GeV and find the mid points and bin width
 #The bin width/rectangle width should be the same as the one we are trying to model for.
-e_range=[0,120]
-bin_number_e=int(sp.diff(e_range)/bin_width)
-bin_width_e=sp.diff(e_range)/bin_number_e
-Data_bin_heights_e,Data_bin_edges_e,Data_patches=plt.hist(Data,bins=bin_number_e,range=e_range)
+e_range = [0,120]
+print(sp.diff(e_range))
+#%%
+bin_number_e = int(sp.diff(e_range)/bin_width) # the bin width  is the same as in the original histogram we are fitting to
+
+bin_width_e = sp.diff(e_range)/bin_number_e # width of bin is length of entire range / number of bins
+
+Data_bin_heights_e, Data_bin_edges_e, Data_patches = plt.hist(Data, bins = bin_number_e, range = e_range)
+
 #Area_Data=sum(Data_bin_heights_e*sp.absolute(Data_bin_edges_e[0]-Data_bin_edges_e[1]))
 Area_Data=sum(Data_bin_heights_e*bin_width_e)
 
 #finding area beneath an e^(-t/lambda) graph by integration
-#defining an exponential function
-def expfunc(x,A_val,B_val):
+#defining an exponential function in terms of scaling factor and rate constant
+def expfunc(x, B_val, A_val = 1):
     return A_val*sp.e**(-x/B_val)
-A_val=1
-B_val=param_lambda
-Area_test=sint.quad(expfunc,0,120,args=(A_val,B_val))
 
-A=Area_Data/Area_test[0]
+B_val = param_lambda
+Area_test = sint.quad(expfunc, 0, 120, args = (B_val))
+
+A=Area_Data/Area_test[0] # A is scaling factor given by ratio of area under data vs area under exponential
 print(A)
 #%%
     #c
 #plotting the exponential function using the parameters we have chosen along with the scatter points
 
-k=sp.linspace(104,155,1000)
-plt.plot(k,expfunc(k,A,param_lambda))
+k = sp.linspace(104, 155, 1000)
 
-plt.scatter(Data_bin_value,Data_bin_heights,color='black')
-plt.errorbar(Data_bin_value,Data_bin_heights,xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2,yerr=(1/b_tau)*Data_bin_heights,ls='',color='black',capsize=2)
+plt.plot(k, expfunc(k, param_lambda, A)) # exponential function scaled appropriately
+
+plt.scatter(Data_bin_value, Data_bin_heights, color = 'k')
+plt.errorbar(Data_bin_value, Data_bin_heights, xerr = abs(Data_bin_edges[0]-Data_bin_edges[1])/2, yerr = (1/b_tau)*Data_bin_heights, ls='', color = 'k', capsize = 2)
+# now the variance of each point is proportional to the value of the exponential at that point
 plt.xlim(hist_range)
-plt.ylim(0,2000)
+plt.ylim(0, 2000)
+
 plt.xlabel('m (GeV)')
 plt.ylabel('Number of entries')
 plt.show()
@@ -256,51 +256,53 @@ plt.show()
 #the idea here is to create a 2D array that has different test_step_number of different values for A and lambda at a certain radius away from what was calculated before.
 #each one of these will then be tested with the reduced chi squared test. The values of tested A and lambda that has the lowest chi squared value will then be used for the fit.
 
-test_step_number=10 #dont use too large of a number it will take a long time
-range_A=2500
-range_lamb=0.75
+test_step_number = 10 #dont use too large of a number it will take a long time
+range_A = 2500
+range_lamb = 0.75
 
 #this is creating a 2D array of different combinations of A and lambda within the range specified above
-A_lamb_test=np.zeros([test_step_number,test_step_number,2])
-for i in range(0,test_step_number):
-    for j in range (0,test_step_number):
-        A_lamb_test[i,j]=[A-(range_A/2)+(range_A/test_step_number)*i,param_lambda-(range_lamb/2)+(range_lamb/test_step_number)*j]
+A_lamb_test = np.zeros([test_step_number, test_step_number, 2])
+for i in range(test_step_number):
+    for j in range (test_step_number):
+        A_lamb_test[i,j] = [A-(range_A/2)+(range_A/test_step_number)*i,param_lambda-(range_lamb/2)+(range_lamb/test_step_number)*j]
 
 #this bit is calculating the chi squared value for each combination
-red_chi2_test=np.zeros([test_step_number,test_step_number])
-for i in range(0,test_step_number):
-    for j in range (0,test_step_number):
-        red_chi2_test[i,j]=get_B_chi(Data,e_range,bin_number_e,A_lamb_test[i,j,0],A_lamb_test[i,j,1])
+red_chi2_test = np.zeros([test_step_number, test_step_number])
+for i in range(test_step_number):
+    for j in range(test_step_number):
+        red_chi2_test[i,j] = get_B_chi(Data,e_range, bin_number_e, A_lamb_test[i,j,0], A_lamb_test[i,j,1])
 
 #this bit picks out the position of the minimum value and uses them as the new values for A and lambda.
-pos_best_val=[]
-for i in range(0,test_step_number):
-    for j in range (0,test_step_number):
-        if red_chi2_test[i,j]==np.min(red_chi2_test):
-            pos_best_val=[i,j]
+pos_best_val = []
+for i in range(test_step_number):
+    for j in range(test_step_number):
+        if red_chi2_test[i,j] == np.min(red_chi2_test):
+            pos_best_val = [i,j]
             print(red_chi2_test[i,j])
         else:
             continue
 
 #assigning the new values of A and lambda
-A_new=A_lamb_test[pos_best_val[0],pos_best_val[1],0]
-lamb_new=A_lamb_test[pos_best_val[0],pos_best_val[1],1]
+A_new = A_lamb_test[pos_best_val[0], pos_best_val[1],0]
+lamb_new = A_lamb_test[pos_best_val[0], pos_best_val[1],1]
 
 #plotting the graph with new values of A and lambda
-k=sp.linspace(100,160,1000)
-plt.plot(k,expfunc(k,A_new,lamb_new))
+k = sp.linspace(100, 160, 1000)
+plt.plot(k, expfunc(k, lamb_new, A_new))
 
-plt.scatter(Data_bin_value,Data_bin_heights,color='black')
-plt.errorbar(Data_bin_value,Data_bin_heights,xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2,yerr=(1/b_tau)*Data_bin_heights,ls='',color='black',capsize=2)
+plt.scatter(Data_bin_value, Data_bin_heights, color='k')
+plt.errorbar(Data_bin_value, Data_bin_heights, xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2, yerr=(1/b_tau)*Data_bin_heights, ls='', color='k', capsize = 2)
+
 plt.xlim(hist_range)
 plt.ylim(0,2000)
+
 plt.xlabel('m (GeV)')
 plt.ylabel('Number of entries')
 plt.show()
 #plt.savefig('fitted curve.png',dpi=1000)
 #%%
 #Part 3
-red_chi2=get_B_chi(Data,e_range,bin_number_e,A_new,lamb_new)
+red_chi2 = get_B_chi(Data,e_range,bin_number_e,A_new,lamb_new)
 print(red_chi2)
 #%%
 #Part 4

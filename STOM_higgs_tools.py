@@ -4,6 +4,7 @@ import scipy as sp
 import scipy.optimize as opt
 import scipy.integrate as sint
 import numpy as np
+import scipy.stats as stats
 #%%
 np.random.seed(1)
 
@@ -309,11 +310,10 @@ print(red_chi2)
     #a
 red_chi2_signal = get_B_chi(Data, hist_range, bin_number, A_new, lamb_new)
 print(red_chi2_signal)
-
-n_sd_away = red_chi2_signal/red_chi2
-print(n_sd_away)
-#we can see that in the region specified (104-155) the chi squared value is around 2.5 sigma away from the background region-only value
-#if we assume that the spread of chi squared values follow gaussian distribution, which corresponds to a rejection region of around 0.62%
+#
+alpha_4a = stats.chi2.sf(red_chi2_signal*(bin_number-2), bin_number-2)
+print(alpha_4a)
+#we can see from here that the rejection region has to be extremely small if we want to include the signal region as part of the null hypothesis (that there is no signal)
 #%%
     #b
 red_chi2_value_list = []
@@ -433,7 +433,7 @@ print(sig_signal_new)
 print(signal_amp_new)
 
 Curve_fit_signal_new = get_SB_expectation(k_signal, A_new, lamb_new, mu_signal_new, sig_signal_new, signal_amp_new)
-
+#%%
 plt.plot(k_signal, Curve_fit_signal_new)
 
 plt.scatter(Data_bin_value, Data_bin_heights,color='k')
@@ -447,14 +447,168 @@ plt.ylabel('Number of entries')
 plt.show()
 #%%
     #c
-chi2_test_range = 10
-no_iterations = max(Data)//chi2_test_range
-mu_chi2_test = chi2_test_range/2
+chi2_test_range=10
+no_iterations=max(Data)//chi2_test_range
+mu_chi2_test=chi2_test_range/2
+bin_width_5c=1
+bin_number_per_range_5c=int(chi2_test_range//bin_width_5c)
+bin_number_tot_5c=int(bin_number_per_range_5c*no_iterations)
+range_5c=int(chi2_test_range*no_iterations)
 
-chi2_loop_test = np.zeros([int(no_iterations), 3])
-for i in range(int(no_iterations)):
-    chi2_loop_test[i] = [chi2_test_range*i,chi2_test_range*(i+1),get_B_chi_signal_1(Data, [chi2_test_range*i,chi2_test_range*(i+1)], 5, A_new, lamb_new, mu_chi2_test*(i+1), sig_signal_new, signal_amp_new)]
+#assuming we don't know where the signal is and fitting an exponential function with the bin width as a function of test range
+lamb_5c=sum(Data)/len(Data)
+
+Data_bin_heights_5c, Data_bin_edges_5c= np.histogram(Data, bins = bin_number_tot_5c, range =[0,range_5c])
+
+#Area_Data=sum(Data_bin_heights_e*sp.absolute(Data_bin_edges_e[0]-Data_bin_edges_e[1]))
+Area_Data_5c=sum(Data_bin_heights_5c*bin_width_5c)
+
+B_val_5c = lamb_5c
+Area_test_5c = sint.quad(expfunc, 0, range_5c, args = (B_val))
+
+A_5c=Area_Data_5c/Area_test_5c[0]
+print(A_5c)
+
+half_bin_width_5c = 0.5*(Data_bin_edges_5c[1] - Data_bin_edges_5c[0])
+Data_bin_edges_5c=sp.delete(Data_bin_edges_5c,len(Data_bin_edges_5c)-1)
+bin_mid_5c=Data_bin_edges_5c-half_bin_width_5c
+
+plt.scatter(bin_mid_5c,Data_bin_heights_5c)
+
+k_5c=sp.linspace(0,range_5c,2000)
+plt.plot(k_5c,get_B_expectation(k_5c,A_5c,lamb_5c))
+#%%
+test_step_number_5c = 10 #dont use too large of a number it will take a long time
+range_A_5c = 2500
+range_lamb_5c = 0.75
+
+#this is creating a 2D array of different combinations of A and lambda within the range specified above
+A_lamb_test_5c = np.zeros([test_step_number_5c, test_step_number_5c, 2])
+for i in range(test_step_number_5c):
+    for j in range (test_step_number_5c):
+        A_lamb_test_5c[i,j] = [A_5c-(range_A_5c/2)+(range_A_5c/test_step_number_5c)*i,lamb_5c-(range_lamb_5c/2)+(range_lamb_5c/test_step_number_5c)*j]
+
+#this bit is calculating the chi squared value for each combination
+red_chi2_test_5c = np.zeros([test_step_number_5c, test_step_number_5c])
+for i in range(test_step_number_5c):
+    for j in range(test_step_number_5c):
+        red_chi2_test_5c[i,j] = get_B_chi(Data,[0,range_5c], bin_number_tot_5c, A_5c, lamb_new)
+
+#this bit picks out the position of the minimum value and uses them as the new values for A and lambda.
+pos_best_val_5c = []
+for i in range(test_step_number_5c):
+    for j in range(test_step_number_5c):
+        if red_chi2_test_5c[i,j] == np.min(red_chi2_test_5c):
+            pos_best_val_5c = [i,j]
+        else:
+            continue
+
+#assigning the new values of A and lambda
+A_new_5c = A_lamb_test_5c[pos_best_val_5c[0], pos_best_val_5c[1],0]
+lamb_new_5c = A_lamb_test_5c[pos_best_val_5c[0], pos_best_val_5c[1],1]
+
+plt.scatter(bin_mid_5c,Data_bin_heights_5c)
+plt.plot(k_5c,get_B_expectation(k_5c,A_new_5c,lamb_new_5c))
+print(A_new_5c)
+print(lamb_new_5c)
+print(np.min(red_chi2_test_5c))
+#%%
+chi2_loop_test=np.zeros([int(no_iterations),3])
+for i in range(0,int(no_iterations)):
+    chi2_loop_test[i]=[chi2_test_range*i,chi2_test_range*(i+1),get_B_chi_signal_1(Data,[chi2_test_range*i,chi2_test_range*(i+1)],bin_number_per_range_5c,A_new_5c,lamb_new_5c,mu_chi2_test+i*chi2_test_range,sig_signal_new,signal_amp_new)]
 #    chi2_loop_test[i]=get_B_chi_signal(Data,[chi2_test_range*i,chi2_test_range*(i+1)],bin_number,A_new,lamb_new,mu_signal_new,sig_signal_new,signal_amp_new)
-
+#    chi2_loop_test[i]=get_B_chi_signal_1(Data,[chi2_test_range*i,chi2_test_range*(i+1)],5,A_new,lamb_new,mu_chi2_test*(i+1),sig_signal_new,signal_amp_new)
+#    bin_heights, bin_edges = np.histogram(Data, range = [chi2_test_range*i,chi2_test_range*(i+1)], bins = bin_number_per_range_5c)
+#    half_bin_width = 0.5*(bin_edges[1] - bin_edges[0])
+#    ys_expected = get_SB_expectation(bin_edges + half_bin_width, A_new, lamb_new, mu_chi2_test*(i+1), sig_signal_new, signal_amp_new)
+#    bin_mid=bin_edges-half_bin_width
+#    bin_mid=sp.delete(bin_mid,bin_mid[0])
+#    plt.scatter(bin_mid,bin_heights)
+#    plt.scatter(bin_mid,ys_expected)
+#chi2_loop_test=get_B_chi_signal_1(Data,[chi2_test_range*12,chi2_test_range*13],bin_number_per_range_5c,A_new_5c,lamb_new_5c,mu_chi2_test+120,sig_signal_new,signal_amp_new)
+#bin_heights, bin_edges = np.histogram(Data, range = [chi2_test_range*12,chi2_test_range*13], bins = bin_number_per_range_5c)
+#
+#half_bin_width = 0.5*(bin_edges[1] - bin_edges[0])
+#bin_edges=sp.delete(bin_edges,len(bin_edges)-1)
+#ys_expected = get_SB_expectation(bin_edges - half_bin_width, A_new_5c, lamb_new_5c, 125, sig_signal_new, signal_amp_new)
+#bin_mid=bin_edges-half_bin_width
+#plt.scatter(bin_mid,bin_heights,color='black')
+#plt.scatter(bin_mid,ys_expected)
+#plt.show()
 print(chi2_loop_test)
-
+#%%
+#AAAAA=sp.linspace(0,10,1000)
+#ys_expected = get_SB_expectation(AAAAA, A_new, lamb_new, mu_chi2_test, sig_signal_new, signal_amp_new)
+#
+#plt.plot(AAAAA,ys_expected)
+##%%
+#test_step_number_5c = 10 #dont use too large of a number it will take a long time
+#range_A_5c = 2500
+#range_lamb_5c = 0.75
+#
+##this is creating a 2D array of different combinations of A and lambda within the range specified above
+#A_lamb_test_5c = np.zeros([test_step_number_5c, test_step_number_5c, 2])
+#for i in range(test_step_number_5c):
+#    for j in range (test_step_number_5c):
+#        A_lamb_test_5c[i,j] = [A_new-(range_A_5c/2)+(range_A_5c/test_step_number_5c)*i,lamb_new-(range_lamb_5c/2)+(range_lamb_5c/test_step_number_5c)*j]
+#
+##this bit is calculating the chi squared value for each combination
+#red_chi2_test_5c = np.zeros([test_step_number_5c, test_step_number_5c])
+#for i in range(test_step_number_5c):
+#    for j in range(test_step_number_5c):
+#        red_chi2_test_5c[i,j] = get_B_chi_signal_1(Data,[chi2_test_range*0,chi2_test_range], 10, A_new, lamb_new, mu_chi2_test, sig_signal_new, signal_amp_new)
+#
+##this bit picks out the position of the minimum value and uses them as the new values for A and lambda.
+#pos_best_val_5c = []
+#for i in range(test_step_number_5c):
+#    for j in range(test_step_number_5c):
+#        if red_chi2_test_5c[i,j] == np.min(red_chi2_test_5c):
+#            pos_best_val_5c = [i,j]
+#        else:
+#            continue
+#
+##assigning the new values of A and lambda
+#A_new_5c = A_lamb_test_5c[pos_best_val_5c[0], pos_best_val_5c[1],0]
+#lamb_new_5c = A_lamb_test_5c[pos_best_val_5c[0], pos_best_val_5c[1],1]
+##%%
+#test_step_number_5c = 10 #dont use too large of a number it will take a long time
+#range_A_5c = 1000
+#range_lamb_5c = 0.5
+#
+##this is creating a 2D array of different combinations of A and lambda within the range specified above
+#A_lamb_test_5c = np.zeros([test_step_number_5c, test_step_number_5c, 2])
+#for i in range(test_step_number_5c):
+#    for j in range (test_step_number_5c):
+#        A_lamb_test_5c[i,j] = [A_new_5c-(range_A_5c/2)+(range_A_5c/test_step_number_5c)*i,lamb_new_5c-(range_lamb_5c/2)+(range_lamb_5c/test_step_number_5c)*j]
+#
+##this bit is calculating the chi squared value for each combination
+#red_chi2_test_5c = np.zeros([test_step_number_5c, test_step_number_5c])
+#for i in range(test_step_number_5c):
+#    for j in range(test_step_number_5c):
+#        red_chi2_test_5c[i,j] = get_B_chi_signal_1(Data,[chi2_test_range*0,chi2_test_range], 10, A_new_5c, lamb_new_5c, mu_chi2_test, sig_signal_new, signal_amp_new)
+#
+##this bit picks out the position of the minimum value and uses them as the new values for A and lambda.
+#pos_best_val_5c = []
+#for i in range(test_step_number_5c):
+#    for j in range(test_step_number_5c):
+#        if red_chi2_test_5c[i,j] == np.min(red_chi2_test_5c):
+#            pos_best_val_5c = [i,j]
+#        else:
+#            continue
+#
+##assigning the new values of A and lambda
+#A_new_5c = A_lamb_test_5c[pos_best_val_5c[0], pos_best_val_5c[1],0]
+#lamb_new_5c = A_lamb_test_5c[pos_best_val_5c[0], pos_best_val_5c[1],1]
+##%%
+##plotting the graph with new values of A and lambda
+#k_5c = sp.linspace(chi2_test_range*0,chi2_test_range, 1000)
+#plt.plot(k_5c, expfunc(k_5c, lamb_new_5c, A_new_5c))
+#
+#plt.scatter(bin_mid, bin_heights, color='k')
+#
+#
+#plt.xlabel('m (GeV)')
+#plt.ylabel('Number of entries')
+#plt.show()
+##%%
+#np.min(red_chi2_test_5c)

@@ -139,7 +139,7 @@ Data_bin_heights, Data_bin_edges, Data_patches = plt.hist(Data,bins = bin_number
 
 plt.xlabel("Mass range")
 plt.ylabel("Number of entries")
-plt.savefig("masshist")
+plt.savefig("masshist.png")
 #%%
 bin_width = sp.diff(hist_range)/bin_number #get width of bins
 #finding the center of each bin
@@ -148,14 +148,14 @@ Data_bin_value = [(Data_bin_edges[i]+Data_bin_edges[i+1])/2 for i in range(bin_n
 plt.scatter(Data_bin_value, Data_bin_heights, color='k')
 #error for x is just the width of each bin 
 #error for y not too sure, i chose it to be the standard deviation of an exponential*the value at that point (could be wrong but it looks good)
-plt.errorbar(Data_bin_value, Data_bin_heights, xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2, ls='',color='k',capsize=2)
+plt.errorbar(Data_bin_value, Data_bin_heights, xerr=abs(Data_bin_edges[0]-Data_bin_edges[1])/2, yerr=sp.sqrt(Data_bin_heights), ls='',color='k',capsize=2)
 #setting limits
 plt.xlim(hist_range)
 plt.ylim(0,2000)
 #labelling
 plt.xlabel('m (GeV)')
 plt.ylabel('Number of entries')
-plt.savefig("masshist.png")
+plt.savefig("masshist1.png")
 plt.show()
 #%%
 #Part 2
@@ -313,6 +313,7 @@ print(red_chi2_signal)
 #
 alpha_4a = stats.chi2.sf(red_chi2_signal*(bin_number-2), bin_number-2)
 print(alpha_4a)
+
 #we can see from here that the rejection region has to be extremely small if we want to include the signal region as part of the null hypothesis (that there is no signal)
 #%%
     #b
@@ -365,6 +366,27 @@ plt.show()
 #we get a distribution with the reduced chi squared value's mean around 1, which means that this is a good fit.
 #most of the values were not found near to the one found for the signal. the closest ones to it were around 2.25, however that is still quite not that close to 3.7, and we can say with a high confidence that this was likely just due to chance
 #if a lot of the values were found near the one found for the signal, then we can say that since this was a background only trial, that the "signal" was likely due to just the shape of the background distribution.
+#%%
+red_chi2_value_list_height,red_chi2_value_list_edges=np.histogram(red_chi2_value_list, bins = 15)
+
+#finding the center of the bins
+half_bin_width_4b = 0.5*(red_chi2_value_list_edges[1] - red_chi2_value_list_edges[0])
+red_chi2_value_list_edges=sp.delete(red_chi2_value_list_edges,len(red_chi2_value_list_edges)-1)
+bin_mid_4b=red_chi2_value_list_edges-half_bin_width_4b
+#plotting the scatter diagram for the chi2 values
+plt.scatter(bin_mid_4b,red_chi2_value_list_height)
+
+#signal_gaus(x, mu, sig, signal_amp)
+#choose test chi2 amplitude based on number of trial
+#curve fit
+x0=[1, 0.4, chi2_amp]
+k_chi2=sp.linspace(0,2.5,1000)
+curvefit=opt.curve_fit(signal_gaus,bin_mid_4b,red_chi2_value_list_height,p0=x0)
+realcurvefit=expfunc(k,*curvefit[0])
+print(*curvefit[0])
+plt.plot(k_chi2,realcurvefit)
+plt.show()
+plt.savefig()
 
 #%%
 #Part 5
@@ -492,7 +514,7 @@ for i in range(test_step_number_5c):
 red_chi2_test_5c = np.zeros([test_step_number_5c, test_step_number_5c])
 for i in range(test_step_number_5c):
     for j in range(test_step_number_5c):
-        red_chi2_test_5c[i,j] = get_B_chi(Data,[0,range_5c], bin_number_tot_5c, A_5c, lamb_new)
+        red_chi2_test_5c[i,j] = get_B_chi(Data,[0,range_5c], bin_number_tot_5c, A_5c, lamb_5c)
 
 #this bit picks out the position of the minimum value and uses them as the new values for A and lambda.
 pos_best_val_5c = []
@@ -536,6 +558,12 @@ for i in range(0,int(no_iterations)):
 #plt.scatter(bin_mid,ys_expected)
 #plt.show()
 print(chi2_loop_test)
+#%%
+chi2_loop_test_mid=(chi2_loop_test[:,0]+chi2_loop_test[:,1])/2
+plt.scatter(chi2_loop_test_mid,chi2_loop_test[:,2])
+plt.xlim(0,275)
+plt.ylim(0,80)
+plt.show()
 #%%
 #AAAAA=sp.linspace(0,10,1000)
 #ys_expected = get_SB_expectation(AAAAA, A_new, lamb_new, mu_chi2_test, sig_signal_new, signal_amp_new)
